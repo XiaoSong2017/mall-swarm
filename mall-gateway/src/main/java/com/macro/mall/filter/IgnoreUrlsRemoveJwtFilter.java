@@ -35,7 +35,8 @@ public class IgnoreUrlsRemoveJwtFilter implements WebFilter {
             if (pathMatcher.match(ignoreUrl, uri.getPath())) {
                 request = exchange.getRequest().mutate().header(AuthConstant.JWT_TOKEN_HEADER, "").build();
                 exchange = exchange.mutate().request(request).build();
-                return chain.filter(exchange);
+//                return chain.filter(exchange);
+                break;
             }
         }
         return chain.filter(exchange);

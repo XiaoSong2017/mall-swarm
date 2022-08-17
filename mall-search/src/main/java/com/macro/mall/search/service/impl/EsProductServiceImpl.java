@@ -31,13 +31,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
-import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -151,22 +151,27 @@ public class EsProductServiceImpl implements EsProductService {
         }else if(sort==3){
             //按价格从低到高
             nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort("price").order(SortOrder.ASC));
-        }else if(sort==4){
+        } else if (sort == 4) {
             //按价格从高到低
             nativeSearchQueryBuilder.withSort(SortBuilders.fieldSort("price").order(SortOrder.DESC));
-        }else{
+        } else {
             //按相关度
             nativeSearchQueryBuilder.withSort(SortBuilders.scoreSort().order(SortOrder.DESC));
         }
         nativeSearchQueryBuilder.withSort(SortBuilders.scoreSort().order(SortOrder.DESC));
+        return getEsProducts(pageable, nativeSearchQueryBuilder);
+    }
+
+    @NotNull
+    private Page<EsProduct> getEsProducts(Pageable pageable, NativeSearchQueryBuilder nativeSearchQueryBuilder) {
         NativeSearchQuery searchQuery = nativeSearchQueryBuilder.build();
         LOGGER.info("DSL:{}", searchQuery.getQuery().toString());
         SearchHits<EsProduct> searchHits = elasticsearchRestTemplate.search(searchQuery, EsProduct.class);
-        if(searchHits.getTotalHits()<=0){
-            return new PageImpl<>(null,pageable,0);
+        if (searchHits.getTotalHits() <= 0) {
+            return new PageImpl<>(null, pageable, 0);
         }
         List<EsProduct> searchProductList = searchHits.stream().map(SearchHit::getContent).collect(Collectors.toList());
-        return new PageImpl<>(searchProductList,pageable,searchHits.getTotalHits());
+        return new PageImpl<>(searchProductList, pageable, searchHits.getTotalHits());
     }
 
     @Override
@@ -203,14 +208,7 @@ public class EsProductServiceImpl implements EsProductService {
             builder.withQuery(functionScoreQueryBuilder);
             builder.withFilter(boolQueryBuilder);
             builder.withPageable(pageable);
-            NativeSearchQuery searchQuery = builder.build();
-            LOGGER.info("DSL:{}", searchQuery.getQuery().toString());
-            SearchHits<EsProduct> searchHits = elasticsearchRestTemplate.search(searchQuery, EsProduct.class);
-            if(searchHits.getTotalHits()<=0){
-                return new PageImpl<>(null,pageable,0);
-            }
-            List<EsProduct> searchProductList = searchHits.stream().map(SearchHit::getContent).collect(Collectors.toList());
-            return new PageImpl<>(searchProductList,pageable,searchHits.getTotalHits());
+            return getEsProducts(pageable, builder);
         }
         return new PageImpl<>(null);
     }
